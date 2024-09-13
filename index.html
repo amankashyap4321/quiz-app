@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Quiz</title>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #000000, #1a237e);
+            color: white;
+        }
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        #home, #quiz, #results {
+            display: none;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .question {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        .answers {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .answer {
+            margin: 10px;
+            padding: 10px;
+            width: 80%;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .answer:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        #timer {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+        #score {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .review {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        .correct {
+            color: #4CAF50;
+        }
+        .incorrect {
+            color: #f44336;
+        }
+        .rocket {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M13.13 22.19l-1.63-3.83c1.57-.58 3.04-1.36 4.4-2.27l-2.77 6.1zM5.64 12.5l-3.83-1.63 6.1-2.77C7 9.46 6.22 10.93 5.64 12.5zM21.61 2.39C21.61 2.39 16.66.269 11 5.93c-2.19 2.19-3.5 4.6-4.35 6.71-.28.75-.09 1.57.46 2.13l2.13 2.13c.55.55 1.37.74 2.13.46 2.11-.85 4.52-2.16 6.71-4.35 5.66-5.66 3.54-10.61 3.54-10.61zm-4.24 7.07c-.78.78-2.05.78-2.83 0-.78-.78-.78-2.05 0-2.83.78-.78 2.05-.78 2.83 0 .78.79.78 2.05 0 2.83z"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            transform: rotate(-45deg);
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div class="container">
+        <div id="home">
+            <h1>Space Quiz</h1>
+            <button onclick="startQuiz()">Start Quiz</button>
+        </div>
+        <div id="quiz">
+            <div id="timer">Time: 60</div>
+            <div class="question" id="question"></div>
+            <div class="answers" id="answers"></div>
+        </div>
+        <div id="results">
+            <h2>Quiz Results</h2>
+            <div id="score"></div>
+            <div id="review"></div>
+            <button onclick="restartQuiz()">Restart Quiz</button>
+        </div>
+    </div>
+    <div class="rocket" id="rocket"></div>
+
+    <script>
+        const allQuestions = [
+            {
+                question: "What is the largest planet in our solar system?",
+                answers: ["Jupiter", "Saturn", "Neptune", "Uranus"],
+                correct: 0
+            },
+            {
+                question: "Which planet is known as the Red Planet?",
+                answers: ["Venus", "Mars", "Mercury", "Earth"],
+                correct: 1
+            },
+            {
+                question: "What is the name of the galaxy containing our solar system?",
+                answers: ["Andromeda", "Milky Way", "Triangulum", "Centaurus A"],
+                correct: 1
+            },
+            {
+                question: "Who was the first person to walk on the moon?",
+                answers: ["Buzz Aldrin", "Yuri Gagarin", "Neil Armstrong", "John Glenn"],
+                correct: 2
+            },
+            {
+                question: "What is the closest star to Earth?",
+                answers: ["Proxima Centauri", "Alpha Centauri", "Sirius", "The Sun"],
+                correct: 3
+            },
+            {
+                question: "Which planet has the Great Red Spot?",
+                answers: ["Mars", "Venus", "Jupiter", "Saturn"],
+                correct: 2
+            },
+            {
+                question: "What is the name of the force that keeps planets in orbit?",
+                answers: ["Centrifugal force", "Gravity", "Magnetic force", "Nuclear force"],
+                correct: 1
+            }
+        ];
+
+        let questions = [];
+        let currentQuestion = 0;
+        let score = 0;
+        let timeLeft = 60;
+        let timer;
+        let userAnswers = [];
+        const totalQuestions = 5;
+        const maxScorePerQuestion = 12; // Maximum score per question (60 seconds / 5)
+        const totalPossibleScore = totalQuestions * maxScorePerQuestion;
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startQuiz() {
+            shuffleArray(allQuestions);
+            questions = allQuestions.slice(0, totalQuestions);
+            currentQuestion = 0;
+            score = 0;
+            timeLeft = 60;
+            userAnswers = [];
+            document.getElementById('home').style.display = 'none';
+            document.getElementById('quiz').style.display = 'block';
+            loadQuestion();
+            startTimer();
+        }
+
+        function loadQuestion() {
+            const question = questions[currentQuestion];
+            document.getElementById('question').textContent = question.question;
+            const answersDiv = document.getElementById('answers');
+            answersDiv.innerHTML = '';
+            question.answers.forEach((answer, index) => {
+                const button = document.createElement('button');
+                button.textContent = answer;
+                button.classList.add('answer');
+                button.onclick = () => selectAnswer(index);
+                answersDiv.appendChild(button);
+            });
+        }
+
+        function selectAnswer(index) {
+            userAnswers[currentQuestion] = index;
+            if (index === questions[currentQuestion].correct) {
+                score += Math.ceil(timeLeft / 5);
+            }
+            nextQuestion();
+        }
+
+        function nextQuestion() {
+            currentQuestion++;
+            if (currentQuestion < questions.length) {
+                loadQuestion();
+            } else {
+                endQuiz();
+            }
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = `Time: ${timeLeft}`;
+                if (timeLeft <= 0) {
+                    endQuiz();
+                }
+            }, 1000);
+        }
+
+        function endQuiz() {
+            clearInterval(timer);
+            document.getElementById('quiz').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('score').textContent = `Your score: ${score} out of ${totalPossibleScore}`;
+            displayReview();
+        }
+
+        function displayReview() {
+            const reviewDiv = document.getElementById('review');
+            reviewDiv.innerHTML = '';
+            questions.forEach((question, index) => {
+                const userAnswer = userAnswers[index] !== undefined ? question.answers[userAnswers[index]] : 'Not answered';
+                const correctAnswer = question.answers[question.correct];
+                const isCorrect = userAnswers[index] === question.correct;
+                reviewDiv.innerHTML += `
+                    <div class="review">
+                        <p><strong>Question ${index + 1}:</strong> ${question.question}</p>
+                        <p class="${isCorrect ? 'correct' : 'incorrect'}">Your answer: ${userAnswer}</p>
+                        <p class="correct">Correct answer: ${correctAnswer}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function restartQuiz() {
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('home').style.display = 'block';
+        }
+
+        // Initialize Particle.js
+        document.addEventListener('DOMContentLoaded', function() {
+            particlesJS('particles-js', {
+                particles: {
+                    number: { value: 100 },
+                    color: { value: '#ffffff' },
+                    shape: { type: 'circle' },
+                    opacity: { value: 0.5, random: true },
+                    size: { value: 3, random: true },
+                    move: { enable: true, speed: 2 }
+                }
+            });
+        });
+
+        // Show home screen initially
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('home').style.display = 'block';
+        });
+
+        // Rocket mouse effect
+        document.addEventListener('mousemove', (e) => {
+            const rocket = document.getElementById('rocket');
+            rocket.style.left = (e.clientX - 15) + 'px';
+            rocket.style.top = (e.clientY - 15) + 'px';
+        });
+    </script>
+</body>
+</html>
